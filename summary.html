@@ -89,7 +89,8 @@
         }
         @media print {
             body { width: 100%; padding: 10mm; height: auto; }
-            .no-print { display: none; }
+            /* 인쇄 시 상단 버튼 영역 완전히 숨김 (inline style override 위해 !important 사용) */
+            .no-print { display: none !important; }
         }
         .no-print-btn {
             padding: 10px 20px;
@@ -103,6 +104,17 @@
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // 관리자 접근 제한 (간단한 비밀번호)
+        (function() {
+            const password = prompt("관리자 비밀번호를 입력하세요:");
+            // 원하는 비밀번호로 변경하세요 (현재: 1234)
+            if (password !== "1234") {
+                alert("접근 권한이 없습니다.");
+                window.location.href = "/"; // 비밀번호 틀리면 메인으로 이동
+            }
+        })();
+    </script>
 </head>
 <body>
 
