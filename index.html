@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>평가위원 채점표</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 0;
+      size: 210mm 297mm;
+    }
+    body { 
+      font-family: '맑은 고딕', sans-serif; 
+      margin: 0;
+      width: 190mm;
+      margin: 0 auto;
+      padding: 5px;
+    }
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-bottom: 10px; 
+      font-size: 11px; 
+    }
+    th, td { 
+      border: 1px solid #000; 
+      padding: 4px; 
+      text-align: center; 
+      vertical-align: middle; 
+    }
+    textarea { 
+      width: 100%; 
+      height: 70px;
+      border: 1px solid #000;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      font-size: 11px;
+      padding: 5px;
+      resize: none;
+      margin-bottom: 10px;
+      line-height: 1.2;
+      display: block;
+      box-sizing: border-box;
+      page-break-inside: avoid;
+    }
+    input[type="text"] { 
+      width: 180px; 
+      text-align: center;
+      height: 28px;
+      font-size: 14px;
+    }
+    input[type="number"] { 
+      width: 50px; 
+      text-align: center;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .submit-btn { padding: 8px 16px; font-size: 14px; margin-top: 10px; display: block; margin-left: auto; margin-right: auto; }
+    .section-title { 
+      font-size: 18px; 
+      font-weight: bold; 
+      margin: 5px 0; 
+      text-align: center; 
+      page-break-after: avoid;
+      page-break-inside: avoid;
+    }
+    .score-cell label { display: flex; flex-direction: column; align-items: center; font-size: 10px; }
+    #totalTextCell { text-align: right; font-weight: bold; border: none; padding: 8px 0; font-size: 14px; }
+    .info-box { 
+      text-align: center; 
+      margin: 5px 0; 
+    }
+    .info-box label { display: inline-block; width: auto; margin: 0 8px; }
+    .info-box p { font-size: 14px; margin: 5px 0; }
+    .signature-text { 
+      display: inline-block; 
+      width: 30px; 
+      text-align: left; 
+      margin-left: -5px; 
+      position: relative;
+      top: -1px;
+    }
+    .button-group {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+    }
+    .button-group .left-buttons,
+    .button-group .right-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .button-group button {
+      padding: 4px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 60px;
+    }
+    select {
+      width: 180px;
+      padding: 4px;
+      text-align: center;
+    }
+    @media print {
+      .button-group, .submit-btn {
+        display: none;
+      }
+      /* 인쇄 시 로딩 화면 숨기기 */
+      #pdfLoading {
+        display: none !important;
+      }
+      textarea {
+        -webkit-appearance: none;
+        appearance: none;
+        vertical-align: top;
+        position: relative;
+        top: 0;
+        page-break-inside: avoid;
+      }
+      .section-title {
+        margin-top: 15px;
+        margin-bottom: 15px;
+      }
+      .comment-container {
+        page-break-inside: avoid;
+      }
+      label[for="comment"] {
+        page-break-after: avoid;
+      }
+    }
+    .signature-text {
+      display: inline-block;
+      height: 28px;
+      line-height: 28px;
+      vertical-align: middle;
+      margin-right: 5px;
+    }
+    .comment-container {
+      position: relative;
+      margin-bottom: 5px;
+      width: 100%;
+      margin-top: -0.5mm;
+      page-break-inside: avoid;
+    }
+    label[for="comment"] {
+      display: block;
+      margin-bottom: -0.3mm;
+      page-break-after: avoid;
+    }
+    .comment-text {
+      width: 100%;
+      min-height: 80px;
+      border: 1px solid #000;
+      padding: 5px;
+      font-size: 11px;
+      line-height: 1.2;
+      box-sizing: border-box;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      text-align: left;
+      vertical-align: top;
+      page-break-inside: avoid;
+    }
+    .char-count {
+      position: absolute;
+      right: 5px;
+      bottom: 5px;
+      font-size: 10px;
+      color: #666;
+      background: transparent;
+    }
+    .score-text {
+      display: inline-block;
+      width: 50px;
+      text-align: center;
+      font-size: 11px;
+    }
+    .methodology-row td {
+      padding: 2px 4px;
+      line-height: 1.1;
+    }
+    .security-row td {
+      padding: 2px 4px;
+      line-height: 1.1;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<h2 class="section-title">평가위원별 채점표</h2>
+<div class="info-box">
+  <p style="font-size: 18px;"><strong>사업명:</strong> 2026년 경기도의회 의정 정보시스템 통합 운영 및 유지관리</p>
+  <label>
+    <strong>제안사명:</strong> 
+    <select id="proposalName" required>
+      <option value="">선택하세요</option>
+      <option value="A">A</option>
+      <option value="B">B</option>
+    </select>
+  </label>
+  <label>
+    <strong>평가위원:</strong> 
+    <input type="text" id="evaluator" required style="margin-right:0;">
+    <span class="signature-text">(인)</span>
+  </label>
+</div>
+
+<form id="scoreForm">
+  <table>
+    <thead>
+      <tr>
+        <th rowspan="2">평가항목</th>
+        <th rowspan="2">세부<br>항목</th>
+        <th rowspan="2">평가요소</th>
+        <th rowspan="2">배점</th>
+        <th colspan="5">평가점수</th>
+        <th rowspan="2">점수</th>
+      </tr>
+      <tr>
+        <th>수</th><th>우</th><th>미</th><th>양</th><th>가</th>
+      </tr>
+    </thead>
+    <tbody id="scoreTableBody"></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="10" id="totalTextCell">
+          총점: <span id="totalText">0.0</span> / 70.0점 만점
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <label>종합의견</label><br>
+  <div class="comment-container">
+    <textarea id="comment" maxlength="700" oninput="updateCharCount(this)"></textarea>
+    <span class="char-count">0/700</span>
+  </div><br>
+  <button type="submit" class="submit-btn">제출</button>
+</form>
+
+<div class="button-group">
+  <div class="left-buttons">
+    <button type="button" onclick="resetForm()">초기화</button>
+    <button type="button" onclick="saveData()">저장하기</button>
+    <button type="button" onclick="loadData()">불러오기</button>
+  </div>
+  <div class="right-buttons">
+    <button type="button" onclick="saveToPDF()">PDF 저장</button>
+    <button type="button" onclick="printForm()">인쇄하기</button>
+  </div>
+</div>
+
+<script>
+// Supabase 설정 (여기에 프로젝트 URL과 Anon Key를 입력하세요)
+const SUPABASE_URL = 'https://tgwbbfhfgzgmirbmvrfm.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnd2JiZmhmZ3pnbWlyYm12cmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2NjkxODQsImV4cCI6MjA3OTI0NTE4NH0.2R3P1tNnkSPB8w4Qpu7UeLt47ka_gz-gJLlvMxkDFVc';
+const TABLE_NAME = 'evaluation_results'; // Supabase 테이블 이름
+const STORAGE_BUCKET = 'evaluation_pdfs'; // Supabase Storage 버킷 이름
+
+// Supabase 클라이언트 초기화
+let supabaseClient = null;
+
+// 로컬 스토리지 접근 차단 시 사용할 가짜 스토리지
+const memoryStorage = {
+  getItem: (key) => null,
+  setItem: (key, value) => {},
+  removeItem: (key) => {},
+};
+
+if (typeof supabase !== 'undefined') {
+  try {
+      const cleanUrl = SUPABASE_URL.trim();
+      const cleanKey = SUPABASE_KEY.trim();
+
+      if (cleanUrl.startsWith('http')) {
+         supabaseClient = supabase.createClient(cleanUrl, cleanKey, {
+             auth: {
+                 persistSession: false,
+                 autoRefreshToken: false,
+                 detectSessionInUrl: false,
+                 storage: memoryStorage // 스토리지 접근 차단 방지
+             }
+         });
+      }
+  } catch (e) {
+      console.error('Supabase 초기화 실패:', e);
+  }
+}
+
+const 항목목록 = [
+  { 대: "전략 및 방법론(16)", rowspan: 4, 소: "사업<br>이해도", 배점: 4, 설명: "사업수행계획이 사업의 목표 및 특성에 부합하게 구체적이고 적절한지 평가" },
+  { 대: "", 소: "추진<br>전략", 배점: 4, 설명: "사업수행 일정과 위험요소를 고려한 추진전략 수립의 타당성을 평가" },
+  { 대: "", 소: "추진<br>체계", 배점: 4, 설명: "사업 특성과 제시한 추진전략에 따른 수행조직 구성과 참여 조직간 역할, 책임, 품질 확보 방안이 구체적이고 적절한지 평가" },
+  { 대: "", 소: "사업추진방법론", 배점: 4, 설명: "사업추진방법이 구체적이고 적절한지와 그 실제 적용 사례 및 경험에 따른 단계별 산출물을 제시하였는지 평가" },
+
+  { 대: "사업수행계획(30)", rowspan: 5, 소: "컨설팅 분석", 배점: 8, 설명: "ISP 수립 방법론 및 적정한 분석 도구를 활용하여 현행 업무환경 및 업무프로세스, 시스템을 정확히 분석하였는지 평가하고, 제안한 방안 및 기술의 명확성과 타당성을 평가" },
+  { 대: "", 소: "컨설팅 설계", 배점: 8, 설명: "현황 분석을 토대로 일관성 있고 단기 및 중장기적으로 이행 가능한 전략계획을 구체적으로 수립할 수 있고 전략계획 이행시 위험요인 및 대응방안, 고려 사항 등을 충분히 제시하고 있는가를 평가" },
+  { 대: "", 소: "제약<br>사항", 배점: 5, 설명: "제안요청서의 기술, 표준, 업무, 법제도 및 안전관리 등의 제약조건 내에서 목표사업을 수행하기 위해 제시한 수행 및 검증방안이 구체적이고 적절한지 평가" },
+  { 대: "", 소: "수행<br>환경", 배점: 4, 설명: "컨설팅 과업 수행에 필요한 장비 및 작업장소 등 인프라의 준비 및 대응방안이 제안요청서의 요구사항을 충족할 만큼 구체적이고 적절한지 평가" },
+  { 대: "", 소: "보안요구사항", 배점: 5, 설명: "기술적 보안 구현방안이 제안요청서의 보안요구사항을 충족할 만큼 구체적이고 적절한지 평가" },
+
+  { 대: "프로젝트관리(12)", rowspan: 4, 소: "일정<br>관리", 배점: 3, 설명: "사업수행에 필요한 수행기간과 세부 일정이 구체적이고 적절한지와 각 활동에 필요한 일정계획이 사업추진방법론에 제시된 단계별 산출물과 연계하여 적절히 수립되었는지 평가" },
+  { 대: "", 소: "품질<br>관리", 배점: 3, 설명: "품질관리방안(품질관리의 범위, 절차, 점검방법 등)이 해당 사업의 수행에 적합한지 평가" },
+  { 대: "", 소: "기밀보안관리", 배점: 3, 설명: "사업을 추진하는 동안 발생할 수 있는 악영향으로부터 기밀을 보호하고 원활한 사업수행의 보장을 위한 물리적, 관리적 보안 체계 및 대책이 구체적이고 적절한지 평가" },
+  { 대: "", 소: "위험<br>관리", 배점: 3, 설명: "사업과 관련한 위험에 대한 식별 및 분석, 위험 관리 절차 및 대응방안 등 위험 관리계획이 구체적이고 적절한지 평가" },
+
+  { 대: "프로젝트지원(12)", rowspan: 3, 소: "교육<br>훈련", 배점: 4, 설명: "ISP 담당자, 주요 이해관계자를 위해 필요한 교육훈련 내용, 방법, 기간 및 횟수 등을 구체적으로 제시하였는지 평가" },
+  { 대: "", 소: "기술<br>지원", 배점: 4, 설명: "기술지원 대상 범위, 내용 및 수준, 기술 매뉴얼 등 기술지원이 필요한 사항에 대한 계획 및 방안이 구체적이고 적절한지 평가" },
+  { 대: "", 소: "인수<br>인계", 배점: 4, 설명: "검수 및 인계 등을 위한 인계 전략과 검수 대상·방법, 충족조건 및 인계계획이 구체적이고 적절한지 평가" },
+];
+
+const tbody = document.getElementById("scoreTableBody");
+let currentCategory = "";
+
+항목목록.forEach((item, idx) => {
+  const tr = document.createElement("tr");
+  const scoreOptions = [
+    item.배점,
+    +(item.배점 * 0.9).toFixed(1),
+    +(item.배점 * 0.8).toFixed(1),
+    +(item.배점 * 0.7).toFixed(1),
+    +(item.배점 * 0.6).toFixed(1)
+  ];
+
+  tr.innerHTML = `
+    ${item.대 && item.대 !== currentCategory ? `<td rowspan="${item.rowspan || 1}">${item.대}</td>` : ""}
+    <td>${item.소}</td>
+    <td style="text-align:left">${item.설명}</td>
+    <td>${item.배점}</td>
+    ${scoreOptions.map(val => `
+      <td class="score-cell">
+        <label>
+          <input type="radio" name="score${idx}" value="${val}">
+          <span>${val}</span>
+        </label>
+      </td>
+    `).join("")}
+    <td><span class="score-text" name="scoreVal${idx}"></span></td>
+  `;
+  if (item.소 === "사업추진 방법론") {
+    tr.classList.add('methodology-row');
+  }
+  if (item.소 === "기밀보안관리") {
+    tr.classList.add('security-row');
+  }
+  tbody.appendChild(tr);
+  currentCategory = item.대;
+});
+
+const radios = document.querySelectorAll('input[type=radio]');
+radios.forEach(r => {
+  r.addEventListener('change', e => {
+    const name = e.target.name.replace("score", "scoreVal");
+    const span = document.querySelector(`span[name="${name}"]`);
+    if (span) span.textContent = e.target.value;
+    const total = Array.from(document.querySelectorAll("span[name^='scoreVal']"))
+      .reduce((sum, el) => sum + parseFloat(el.textContent || 0), 0);
+    document.getElementById("totalText").innerText = total.toFixed(1);
+  });
+});
+
+// PDF 생성 및 처리 함수 (업로드 및 다운로드/인쇄)
+async function generateAndHandlePDF(actionType) {
+  const proposalName = document.getElementById("proposalName").value;
+  const evaluator = document.getElementById("evaluator").value;
+  
+  if (!proposalName || !evaluator) {
+    alert('제안사명과 평가위원명을 모두 입력해주세요.');
+    return;
+  }
+
+  // UI 숨김 처리
+  const buttons = document.querySelectorAll('.button-group, .submit-btn');
+  buttons.forEach(btn => btn.style.display = 'none');
+
+  const textarea = document.getElementById('comment');
+  const textareaContent = textarea.value;
+  const commentContainer = textarea.parentElement;
+  
+  textarea.style.display = 'none';
+  commentContainer.querySelector('.char-count').style.display = 'none';
+  
+  const tempDiv = document.createElement('div');
+  tempDiv.className = 'comment-text';
+  tempDiv.textContent = textareaContent;
+  commentContainer.insertBefore(tempDiv, textarea);
+
+  const element = document.body;
+  const fileName = `저장_평가표_${proposalName}_${evaluator}.pdf`;
+  const opt = {
+    margin: 0,
+    filename: fileName,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+    pagebreak: { mode: 'avoid-all' }
+  };
+
+  // 로딩 표시 생성
+  const loadingDiv = document.createElement('div');
+  loadingDiv.id = 'pdfLoading';
+  loadingDiv.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5); color: white;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 9999; font-size: 20px; font-weight: bold;
+  `;
+  // html2pdf가 캡처할 때 이 요소를 무시하도록 data-html2canvas-ignore 속성 추가
+  loadingDiv.setAttribute('data-html2canvas-ignore', 'true');
+  loadingDiv.innerHTML = `
+    <div style="margin-bottom: 10px;">PDF 생성 및 서버 업로드 중...</div>
+    <div style="font-size: 14px; font-weight: normal;">잠시만 기다려주세요.</div>
+  `;
+  document.body.appendChild(loadingDiv);
+
+  try {
+      // PDF Blob 생성
+      const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+
+      // Supabase Storage에 업로드
+      // 한글 파일명 이슈 방지를 위해 UUID 사용 (crypto.randomUUID()가 없으면 Math.random() 사용)
+      const uuid = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+      const storageFileName = `PDF/${uuid}_${Date.now()}.pdf`;
+      
+      if (supabaseClient) {
+          const { data, error } = await supabaseClient.storage
+              .from(STORAGE_BUCKET)
+              .upload(storageFileName, pdfBlob, {
+                  contentType: 'application/pdf',
+                  upsert: true,
+                  // 메타데이터로 원래 파일명 저장 (선택사항)
+                  metadata: { original_name: fileName }
+              });
+          
+          if (error) {
+              console.error('Supabase PDF 업로드 실패:', error);
+              // 실패해도 진행
+          } else {
+              console.log('Supabase PDF 업로드 성공:', data);
+          }
+      }
+
+      // Blob을 이용하여 다운로드 또는 인쇄
+      if (actionType === 'download' || actionType === 'submit') {
+          // 파일 다운로드
+          const url = URL.createObjectURL(pdfBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          
+          if (actionType === 'download') {
+               alert("PDF가 저장되었습니다.");
+          }
+      }
+      
+      if (actionType === 'submit') {
+          // 인쇄 창 띄우기
+          window.print();
+      }
+
+  } catch (err) {
+      console.error('PDF 생성 오류:', err);
+      alert("작업 중 오류가 발생했습니다: " + err.message);
+  } finally {
+      // 로딩 표시 제거
+      const loadingDiv = document.getElementById('pdfLoading');
+      if (loadingDiv) loadingDiv.remove();
+
+      // UI 복구
+      textarea.style.display = '';
+      commentContainer.querySelector('.char-count').style.display = '';
+      tempDiv.remove();
+      buttons.forEach(btn => btn.style.display = '');
+  }
+}
+
+// PDF 저장 함수 (버튼 연결)
+function saveToPDF() {
+    generateAndHandlePDF('download');
+}
+
+document.getElementById("scoreForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const proposalName = document.getElementById("proposalName").value;
+  const evaluator = document.getElementById("evaluator").value;
+  
+  if (!proposalName || !evaluator) {
+    alert('제안사명과 평가위원명을 모두 입력해주세요.');
+    return;
+  }
+
+  // Supabase에 데이터 저장 시도
+  try {
+    await saveToSupabase(proposalName, evaluator);
+  } catch (error) {
+    console.error("Supabase 저장 실패:", error);
+    if (!confirm("데이터 저장에 실패했습니다. 그래도 PDF 저장 및 인쇄를 진행하시겠습니까?\n오류: " + error.message)) {
+      return;
+    }
+  }
+
+  // PDF 생성, 업로드, 다운로드, 인쇄 진행
+  await generateAndHandlePDF('submit');
+});
+
+
+// 초기화 함수
+function resetForm() {
+  if (confirm('모든 입력 내용을 초기화하시겠습니까?')) {
+    document.getElementById('scoreForm').reset();
+    document.getElementById('proposalName').value = '';
+    document.getElementById('evaluator').value = '';
+    document.getElementById('totalText').innerText = '0.0';
+    document.querySelectorAll('span[name^="scoreVal"]').forEach(span => span.textContent = '');
+  }
+}
+
+// 데이터 저장 함수
+function saveData() {
+  const proposalName = document.getElementById("proposalName").value;
+  const evaluator = document.getElementById("evaluator").value;
+  
+  if (!proposalName || !evaluator) {
+    alert('제안사명과 평가위원명을 모두 입력해주세요.');
+    return;
+  }
+
+  const formData = {
+    proposalName: proposalName,
+    evaluator: evaluator,
+    scores: [...document.querySelectorAll("span[name^='scoreVal']")].map(e => e.textContent),
+    total: document.getElementById("totalText").innerText,
+    comment: document.getElementById("comment").value
+  };
+  
+  const jsonStr = JSON.stringify(formData, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `평가표_${proposalName}_${evaluator}.json`;
+  
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+  
+  localStorage.setItem('scoreData', jsonStr);
+  alert('저장되었습니다.');
+}
+
+// 데이터 불러오기 함수
+function loadData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  
+  input.onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const formData = JSON.parse(e.target.result);
+        
+        document.getElementById("proposalName").value = formData.proposalName;
+        document.getElementById("evaluator").value = formData.evaluator;
+        document.getElementById("comment").value = formData.comment;
+        
+        document.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
+        document.querySelectorAll('span[name^="scoreVal"]').forEach(span => span.textContent = '');
+        
+        formData.scores.forEach((score, idx) => {
+          if (score) {
+            const span = document.querySelector(`span[name="scoreVal${idx}"]`);
+            if (span) {
+              span.textContent = score;
+              const radio = document.querySelector(`input[name="score${idx}"][value="${score}"]`);
+              if (radio) radio.checked = true;
+            }
+          }
+        });
+        
+        document.getElementById("totalText").innerText = formData.total;
+        alert('불러오기 완료되었습니다.');
+      } catch (error) {
+        console.error('파일 읽기 오류:', error);
+        alert('파일 형식이 올바르지 않습니다.');
+      }
+    };
+    reader.onerror = function(error) {
+      console.error('파일 읽기 오류:', error);
+      alert('파일을 읽는 중 오류가 발생했습니다.');
+    };
+    reader.readAsText(file);
+  };
+  
+  input.click();
+}
+
+// 글자 수 카운터 업데이트 함수
+function updateCharCount(textarea) {
+  const count = textarea.value.length;
+  const counter = textarea.parentElement.querySelector('.char-count');
+  counter.textContent = `${count}/700`;
+}
+
+window.addEventListener('load', function() {
+  const textarea = document.getElementById('comment');
+  if (textarea) updateCharCount(textarea);
+});
+
+// Supabase 저장 함수
+async function saveToSupabase(proposalName, evaluator) {
+  if (!supabaseClient) {
+    console.warn("Supabase 클라이언트가 초기화되지 않았습니다.");
+    // 설정이 없을 경우 저장 건너뛰기 (알림만 표시하고 에러는 던지지 않음 - 테스트용)
+    // 만약 필수라면 아래 주석 해제
+    // throw new Error("Supabase 클라이언트가 초기화되지 않았습니다.");
+    return; 
+  }
+  
+  if (SUPABASE_URL.includes('여기에')) {
+     alert("Supabase 설정이 완료되지 않았습니다. 코드를 확인해주세요.");
+     throw new Error("Supabase 설정 미완료");
+  }
+
+  const scores = [...document.querySelectorAll("span[name^='scoreVal']")].map(e => e.textContent);
+  const total = document.getElementById("totalText").innerText;
+  const comment = document.getElementById("comment").value;
+
+  const { data, error } = await supabaseClient
+    .from(TABLE_NAME)
+    .insert([
+      { 
+        proposal_name: proposalName,
+        evaluator: evaluator,
+        scores: scores, // JSONB 타입
+        total_score: parseFloat(total),
+        comment: comment,
+        created_at: new Date().toISOString()
+      },
+    ]);
+
+  if (error) {
+    throw error;
+  }
+  
+  alert("서버에 성공적으로 저장되었습니다.");
+}
+
+// 인쇄하기 함수 추가
+function printForm() {
+  const proposalName = document.getElementById("proposalName").value;
+  const evaluator = document.getElementById("evaluator").value;
+  
+  if (!proposalName || !evaluator) {
+    alert('제안사명과 평가위원명을 모두 입력해주세요.');
+    return;
+  }
+
+  const buttons = document.querySelectorAll('.button-group, .submit-btn');
+  buttons.forEach(btn => btn.style.display = 'none');
+
+  const textarea = document.getElementById('comment');
+  const textareaContent = textarea.value;
+  const commentContainer = textarea.parentElement;
+  
+  textarea.style.display = 'none';
+  commentContainer.querySelector('.char-count').style.display = 'none';
+  
+  const tempDiv = document.createElement('div');
+  tempDiv.className = 'comment-text';
+  tempDiv.textContent = textareaContent;
+  commentContainer.insertBefore(tempDiv, textarea);
+
+  window.print();
+
+  textarea.style.display = '';
+  commentContainer.querySelector('.char-count').style.display = '';
+  tempDiv.remove();
+  buttons.forEach(btn => btn.style.display = '');
+}
+</script>
+
+</body>
+</html>
